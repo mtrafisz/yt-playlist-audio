@@ -44,19 +44,22 @@ def download_and_convert(url, progress_bar):
             ffmpeg.input(audio_mp4_path).output(str(audio_mp3_path),
                 loglevel='quiet').run()
         )
-        progress_bar.update(1)
 
     except Exception as e:
         print(f"Error processing {url}: {e}") 
 
-with tqdm(total=len(p.video_urls), desc="Download progress", unit="video") as progress_bar:
-    with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
-        futures = [executor.submit(download_and_convert, url, progress_bar) for url in p.video_urls]
-        for future in concurrent.futures.as_completed(futures):
-            future.result()
+    progress_bar.update(1)
 
-import shutil
-(
-    shutil.rmtree(temp_path, ignore_errors=True)
-)
+try:
+    with tqdm(total=len(p.video_urls), desc="Download progress", unit="video") as progress_bar:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
+            futures = [executor.submit(download_and_convert, url, progress_bar) for url in p.video_urls]
+            for future in concurrent.futures.as_completed(futures):
+                future.result()
+finally:
+    import shutil
+    (
+        shutil.rmtree(temp_path, ignore_errors=True)
+    )
+    os.system('stty sane')
 

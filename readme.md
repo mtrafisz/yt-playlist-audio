@@ -7,7 +7,10 @@ all of your songs in mp3 format to your PC.
 
 ## Usage
 
-`yt-playlist-audio <url to playlist>`
+```bash
+pip install -r requirements.txt
+yt-playlist-audio <url to playlist>
+```
 
 ## License
 
