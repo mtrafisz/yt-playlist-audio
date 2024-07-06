@@ -15,7 +15,7 @@ p = Playlist(sys.argv[1])
 
 temp_path = Path('.', '.temp')
 output_path = Path('.', p.title)
-workers = min(os.cpu_count() - 1, 1)
+workers = max(os.cpu_count() - 1, 1)
 
 print(f"Downloading '{p.title}'")
 
