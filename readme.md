@@ -38,5 +38,5 @@ This project uses following packages:
 
 I do not claim any rights to those packages.
 
-`YtPlaylistAudio` is itself licensed under [MIT licese](LICENSE).
+`YtPlaylistAudio` is itself licensed under [MIT license](LICENSE).
 
