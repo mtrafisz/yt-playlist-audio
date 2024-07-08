@@ -8,8 +8,9 @@ all of your songs in mp3 format to your PC.
 ## Usage
 
 ```bash
+# venv initialization, etc.
 pip install -r requirements.txt
-yt-playlist-audio <url to playlist>
+python3 yt-playlist-audio.py <url to playlist>
 ```
 
 ## Requirements
