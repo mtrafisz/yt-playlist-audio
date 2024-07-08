@@ -15,7 +15,7 @@ p = Playlist(sys.argv[1])
 
 temp_path = Path('.', '.temp')
 output_path = Path('.', p.title)
-workers = max(os.cpu_count() - 1, 1)
+workers = max(os.cpu_count(), 1)
 
 print(f"Downloading '{p.title}'")
 
@@ -37,7 +37,19 @@ def download_and_convert(url, progress_bar):
         if audio_mp3_path.exists():
             audio_mp3_path.unlink()
 
-        audio_mp4.download(temp_path)
+        retries = 2
+
+        while retries > 0:
+            retries -= 1
+
+            try:
+                audio_mp4.download(temp_path)
+            except Exception as e:
+                print(f"Error downloading {url}: {e}")
+                if retries > 0:
+                    print("Retrying...")
+                else:
+                    raise e
 
         import ffmpeg
         (
@@ -58,8 +70,6 @@ try:
                 future.result()
 finally:
     import shutil
-    (
-        shutil.rmtree(temp_path, ignore_errors=True)
-    )
+    shutil.rmtree(temp_path, ignore_errors=True)
     os.system('stty sane')
 

@@ -12,6 +12,22 @@ pip install -r requirements.txt
 yt-playlist-audio <url to playlist>
 ```
 
+## Requirements
+
+You have to have `ffmpeg` binary accessible in your PATH.
+
+## Info/Why?
+
+- Pytube downloads audio streams in mp4 format. This script couples Pytube with ffmpeg to immediately convert those files into mp3s.
+
+- Also, it splits the downloading process into multiple threads to speed up the process.
+
+- With 6 cores, it takes around 1.5 seconds/song.
+
+- I couldn't get the `pytube.cli.at_progress` to work, so I used `tqdm` to show the progress of downloading.
+
+- I've only tested this script on Linux Mint, with Kitty terminal.
+
 ## License
 
 This project uses following packages:
@@ -21,5 +37,5 @@ This project uses following packages:
 
 I do not claim any rights to those packages.
 
-`YtPlaylistAudio` is licensed under [MIT licese](LICENSE).
+`YtPlaylistAudio` is itself licensed under [MIT licese](LICENSE).
 
