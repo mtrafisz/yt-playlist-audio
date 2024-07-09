@@ -70,10 +70,11 @@ def download_playlist(playlist_url):
     output_path = Path(args.output) / playlist.title
     output_path.mkdir(exist_ok=True)
 
-    progress_bar = tqdm(total=len(urls), desc="Downloading", unit="song", unit_scale=True) if not args.quiet else None
     if not args.quiet:
         print(f"Downloading {len(urls)} songs from {playlist.title} to {output_path}")
 
+    progress_bar = tqdm(total=len(urls), desc="Downloading", unit="song", unit_scale=True) if not args.quiet else None
+    
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.num_workers) as executor:
         futures = []
         for url in urls:
