@@ -71,7 +71,7 @@ def download_playlist(playlist_url):
     output_path.mkdir(exist_ok=True)
 
     if not args.quiet:
-        print(f"Downloading {len(urls)} songs from {playlist.title} to {output_path}")
+        print(f"Downloading {len(urls)} songs from {playlist.title}")
 
     progress_bar = tqdm(total=len(urls), desc="Downloading", unit="song", unit_scale=True) if not args.quiet else None
     
