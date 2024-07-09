@@ -1,75 +1,93 @@
 #!/bin/python3
 
 import sys
+import argparse
 import os
+
 import concurrent.futures
+import threading
+import queue
+
 from pytube import YouTube, Playlist
 from pathlib import Path
 from tqdm import tqdm
+import ffmpeg
+import shutil
 
-if len(sys.argv) != 2:
-    print(f"Usage: {sys.argv[0]} <playlist url>")
+arg_parser = argparse.ArgumentParser(
+    prog="yt-playlist-audio",
+    description="Download songs from a YouTube playlist.")
+arg_parser.add_argument("playlist_url", help="URL of the YouTube playlist.", type=str)
+arg_parser.add_argument("-o", "--output", help="Output directory.", type=str, default=".")
+arg_parser.add_argument("-f", "--force", help="Download all files, even if they already exist.", action="store_true")
+arg_parser.add_argument("-n", "--num-workers", help="Number of workers.", type=int, default=os.cpu_count())
+arg_parser.add_argument("-v", "--verbose", help="Show debug information and ffmpeg output", action="store_true")
+arg_parser.add_argument('-q', '--quiet', help='Do not output anything', action='store_true')
+args = arg_parser.parse_args()
+
+if args.verbose and args.quiet:
+    print("Cannot be both verbose and quiet. Make up your mind.")
     exit(1)
 
-p = Playlist(sys.argv[1])
+temp_path = Path(args.output) / ".ypa_temp"
+temp_path.mkdir(exist_ok=True, parents=True)
 
-temp_path = Path('.', '.temp')
-output_path = Path('.', p.title)
-workers = max(os.cpu_count(), 1)
+output_path: Path
 
-print(f"Downloading '{p.title}'")
+def convert(mp4_path, mp3_path):
+    ffmpeg.input(mp4_path).output(str(mp3_path),
+                loglevel=('quiet' if not args.verbose else 'info')).run()
 
-if not output_path.exists():
-    output_path.mkdir()
-if not temp_path.exists():
-    temp_path.mkdir()
+def download_and_convert(url, progress_bar=None):
+    global output_path
 
-def download_and_convert(url, progress_bar):
     try:
         v = YouTube(url)
 
         audio_mp4 = v.streams.filter(only_audio=True).first()
         audio_name = audio_mp4.default_filename.strip()
 
-        audio_mp4_path = Path(temp_path, audio_name)
-        audio_mp3_path = Path(output_path, audio_name).with_suffix('.mp3')
+        audio_mp4_path = temp_path / audio_name
+        audio_mp3_path = output_path / audio_name.replace(".mp4", ".mp3")
 
-        if audio_mp3_path.exists():
-            audio_mp3_path.unlink()
-
-        retries = 2
-
-        while retries > 0:
-            retries -= 1
-
-            try:
-                audio_mp4.download(temp_path)
-            except Exception as e:
-                print(f"Error downloading {url}: {e}")
-                if retries > 0:
-                    print("Retrying...")
-                else:
-                    raise e
-
-        import ffmpeg
-        (
-            ffmpeg.input(audio_mp4_path).output(str(audio_mp3_path),
-                loglevel='quiet').run()
-        )
+        if not audio_mp3_path.exists() or args.force:
+            audio_mp4.download(temp_path)
+            convert(audio_mp4_path, audio_mp3_path)
 
     except Exception as e:
-        print(f"Error processing {url}: {e}") 
+        if args.quiet: return;
+        print(f"Error downloading {url}: {e}")
 
-    progress_bar.update(1)
+    if progress_bar:
+        progress_bar.update(1)
+        
+def download_playlist(playlist_url):
+    global output_path
+
+    playlist = Playlist(playlist_url)
+    urls = playlist.video_urls
+
+    output_path = Path(args.output) / playlist.title
+    output_path.mkdir(exist_ok=True)
+
+    progress_bar = tqdm(total=len(urls), desc="Downloading", unit="song", unit_scale=True) if not args.quiet else None
+    if not args.quiet:
+        print(f"Downloading {len(urls)} songs from {playlist.title} to {output_path}")
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=args.num_workers) as executor:
+        futures = []
+        for url in urls:
+            futures.append(executor.submit(download_and_convert, url, progress_bar))
+
+        for future in concurrent.futures.as_completed(futures):
+            pass
 
 try:
-    with tqdm(total=len(p.video_urls), desc="Download progress", unit="video") as progress_bar:
-        with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
-            futures = [executor.submit(download_and_convert, url, progress_bar) for url in p.video_urls]
-            for future in concurrent.futures.as_completed(futures):
-                future.result()
+    download_playlist(args.playlist_url)
+except Exception as e:
+    if args.quiet: exit(1)
+    print(f"Error downloading playlist: {e}")
 finally:
-    import shutil
-    shutil.rmtree(temp_path, ignore_errors=True)
+    shutil.rmtree(temp_path)
     os.system('stty sane')
-
+            
